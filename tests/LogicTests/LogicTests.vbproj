@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Console runner that exercises the POS business logic (no UI) on any OS:  dotnet run -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>UniversalPOS</RootNamespace>
+    <OptionStrict>On</OptionStrict>
+    <OptionInfer>On</OptionInfer>
+    <StartupObject>UniversalPOS.Tests.Runner</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\UniversalPOS\Core\**\*.vb" Link="Core\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\..\UniversalPOS\Data\**\*.vb" Link="Data\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\..\UniversalPOS\Services\**\*.vb" Link="Services\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+  </ItemGroup>
+</Project>

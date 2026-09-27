@@ -1,0 +1,47 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ "**" ]
+    tags: [ "v*" ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Run business-logic tests
+        run: dotnet run --project tests/LogicTests/LogicTests.vbproj
+
+      - name: Publish single-file EXE
+        run: dotnet publish UniversalPOS/UniversalPOS.vbproj -c Release -o publish
+
+      - name: Build installer (Inno Setup)
+        run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\UniversalPOS.iss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UniversalPOS-exe
+          path: publish/UniversalPOS.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UniversalPOS-Setup
+          path: dist/*.exe
+
+      - name: Attach to GitHub release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            publish/UniversalPOS.exe
+            dist/*.exe
