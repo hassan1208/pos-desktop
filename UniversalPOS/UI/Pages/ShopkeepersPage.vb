@@ -219,6 +219,8 @@ Namespace UI.Pages
                                                       End Sub
             LoadProducts()
             UpdateMode()
+            ' Binding auto-selects the first product once the combo is created; start empty instead.
+            AddHandler Shown, Sub() LoadProducts()
         End Sub
 
         Private ReadOnly Property Giving As Boolean
@@ -231,6 +233,7 @@ Namespace UI.Pages
             Ui.Bind(_product, InventoryService.ProductPicker(Ui.SelectedId(_category)), "product_name")
             _product.SelectedIndex = -1
             _product.Text = ""
+            _price.Value = 0
             _info.Text = ""
         End Sub
 

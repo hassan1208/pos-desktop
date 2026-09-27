@@ -339,9 +339,17 @@ Namespace UI.Pages
             _lines.Columns("product_name").ReadOnly = True
             Ui.ShowTable(_grid, _lines, "product_name=Item", "quantity=Qty", "sale_price=Price", "line_total=Total")
             AddHandler _lines.ColumnChanged, Sub() UpdateTotal()
+            AddHandler _lines.RowChanged, Sub() UpdateTotal()
             AddHandler _lines.RowDeleted, Sub() UpdateTotal()
             AddHandler _grid.DataError, Sub(s, e) e.ThrowException = False
             AddHandler _grid.CellEndEdit, Sub() UpdateTotal()
+            ' Binding auto-selects the first product once the combo is created; start empty instead.
+            AddHandler Shown, Sub()
+                                  _product.SelectedIndex = -1
+                                  _product.Text = ""
+                                  _price.Value = 0
+                                  _product.Focus()
+                              End Sub
 
             If id > 0 Then
                 Dim q = QuotationService.GetQuotation(id)
