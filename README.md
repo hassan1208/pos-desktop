@@ -16,6 +16,7 @@ with nothing else to install: no XAMPP, no MySQL, no internet.
 | **Products** | Categories, barcode, cost, sale price and auto profit %, stock, per-category custom fields (Size, Color, IMEI…), stock adjustment, low-stock highlight, print and CSV |
 | **Categories** | Custom fields per category, with a "required" option for each field |
 | **Vendors & Purchases** | Multi-line purchase bills. A product with an existing name is restocked; a new name creates a new product. Supports full, partial and credit payment, bill photo, payments against one bill or spread over the oldest bills, ledger and printable statement |
+| **Customers (Udhaar)** | Credit sales: tick "Credit sale" on the sale screen, record what was paid, and the rest goes on the customer's account. Payments received are applied to the oldest unpaid invoices. Includes a ledger, a printable customer statement, and Paid / Balance Due on the invoice |
 | **Shopkeepers Ledger** | Two-way running account with nearby shops. You can give or receive products or cash. Giving a product deducts stock and creates a sale; receiving one adds stock. You can settle all or part of an entry on the spot, record returns, and print a statement |
 | **Expenses** | Expense categories, date filter, print and CSV |
 | **Maintenance / Repairs** | Repair jobs with parts cost and customer charge, which gives the profit. Prints a receipt |
@@ -78,5 +79,5 @@ Run the logic tests: `dotnet run --project tests/LogicTests/LogicTests.vbproj`.
 
 ## Differences from the web version
 - Single shop per install. The multi-tenant admin panel, shop approval, email OTP and public share links are removed because the app runs offline.
-- New: barcode support, discounts, cash and change, cashier role, stock adjustment, thermal receipts, automatic backups, and a full payment trail in the vendor statement.
+- New: customer credit (udhaar khata), barcode support, discounts, cash and change, cashier role, stock adjustment, thermal receipts, automatic backups, and a full payment trail in the vendor statement.
 - Deleting a category is blocked while it still has products. On the web, this deleted the products and their sales lines.

@@ -98,6 +98,7 @@ Namespace UI
             MinimizeBox = False
             StartPosition = FormStartPosition.CenterParent
             ShowInTaskbar = False
+            ShowIcon = False
             BackColor = Theme.Card
             KeyPreview = True
             AutoScaleMode = AutoScaleMode.Font

@@ -31,6 +31,12 @@ Namespace Printing
                 doc.AddTotal("Discount:", "- " & Fmt.Money(discount))
             End If
             doc.AddTotal("Grand Total:", Fmt.Money(GetDec(sale, "total_amount")))
+            Dim due = GetDec(sale, "total_amount") - GetDec(sale, "paid_amount")
+            If due > 0.004D Then
+                doc.GrandTotalIndex = doc.Totals.Count - 1
+                doc.AddTotal("Paid:", Fmt.Money(GetDec(sale, "paid_amount")))
+                doc.AddTotal("Balance Due:", Fmt.Money(due))
+            End If
             Return doc
         End Function
 
@@ -123,6 +129,28 @@ Namespace Printing
             doc.AddTotal("Total Given:", Fmt.Money(given))
             doc.AddTotal("Total Received:", Fmt.Money(received))
             doc.AddTotal(If(bal >= 0, "Balance Receivable:", "Balance Payable:"), Fmt.Money(Math.Abs(bal)))
+            Return doc
+        End Function
+
+        Public Function CustomerStatement(ckey As String) As PrintDoc
+            Dim c = Data.Db.QueryRow("SELECT MAX(customer_name) AS name, MAX(customer_phone) AS phone FROM sales WHERE " &
+                                     "CASE WHEN IFNULL(TRIM(customer_phone),'') <> '' THEN 'p:' || TRIM(customer_phone) ELSE 'n:' || LOWER(TRIM(IFNULL(customer_name,''))) END = @p0", ckey)
+            Dim doc As New PrintDoc With {.Title = "CUSTOMER STATEMENT", .DocDate = Date.Today.ToString("dd MMM yyyy", Fmt.Inv), .Format = "a4", .Footer = " "}
+            doc.PartyLines.Add("Customer: " & GetStr(c, "name"))
+            If GetStr(c, "phone") <> "" Then doc.PartyLines.Add("Phone: " & GetStr(c, "phone"))
+            doc.Columns.Add(New PrintColumn("Date", 1.6F))
+            doc.Columns.Add(New PrintColumn("Description", 4))
+            doc.Columns.Add(New PrintColumn("Sale", 1.8F, StringAlignment.Far))
+            doc.Columns.Add(New PrintColumn("Paid", 1.8F, StringAlignment.Far))
+            doc.Columns.Add(New PrintColumn("Balance", 1.8F, StringAlignment.Far))
+            Dim debit = 0D, credit = 0D
+            For Each r As DataRow In CustomerService.Statement(ckey).Rows
+                debit += GetDec(r, "debit") : credit += GetDec(r, "credit")
+                doc.Rows.Add({Fmt.ShowDate(GetStr(r, "date")), GetStr(r, "description"), NumOrBlank(GetDec(r, "debit")), NumOrBlank(GetDec(r, "credit")), Fmt.Num(GetDec(r, "balance"))})
+            Next
+            doc.AddTotal("Total Purchases:", Fmt.Money(debit))
+            doc.AddTotal("Total Paid:", Fmt.Money(credit))
+            doc.AddTotal("Balance Due:", Fmt.Money(debit - credit))
             Return doc
         End Function
 

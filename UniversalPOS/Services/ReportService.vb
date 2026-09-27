@@ -18,6 +18,7 @@ Namespace Services
         Public Property StockValue As Decimal
         Public Property VendorPayable As Decimal
         Public Property ShopkeeperReceivable As Decimal
+        Public Property CustomerCredit As Decimal
         Public Property ShopkeeperPayable As Decimal
     End Class
 
@@ -74,6 +75,7 @@ Namespace Services
                 st.ProductCount = s.ScalarLong("SELECT COUNT(*) FROM products")
                 st.LowStockCount = s.ScalarLong("SELECT COUNT(*) FROM products WHERE stock_quantity <= @p0", AppSettings.LowStockThreshold)
                 st.StockValue = s.ScalarDec("SELECT COALESCE(SUM(stock_quantity * purchase_price),0) FROM products WHERE stock_quantity > 0")
+                st.CustomerCredit = s.ScalarDec("SELECT COALESCE(SUM(total_amount - paid_amount),0) FROM sales WHERE total_amount - paid_amount > 0.004")
                 st.VendorPayable = s.ScalarDec("SELECT COALESCE(SUM(balance_due),0) FROM purchases")
                 Dim b = s.Query("SELECT COALESCE(SUM(CASE WHEN direction='given' THEN amount ELSE -amount END),0) AS bal FROM shopkeeper_transactions GROUP BY contact_id")
                 For Each row As DataRow In b.Rows
@@ -143,7 +145,7 @@ Namespace Services
 
         Public Function SalesList(fromDate As Date, toDate As Date, Optional search As String = "") As DataTable
             Return Db.Query("SELECT s.id, s.sale_date, IFNULL(s.customer_name,'Walk-in') AS customer, s.customer_phone, " &
-                            "(SELECT SUM(quantity) FROM sale_items i WHERE i.sale_id = s.id) AS items, s.discount, s.total_amount, s.total_profit, u.username AS user " &
+                            "(SELECT SUM(quantity) FROM sale_items i WHERE i.sale_id = s.id) AS items, s.discount, s.total_amount, (s.total_amount - s.paid_amount) AS due, s.total_profit, u.username AS user " &
                             "FROM sales s LEFT JOIN users u ON u.id = s.user_id WHERE s.sale_date BETWEEN @p0 AND @p1 " &
                             "AND (@p2 = '' OR IFNULL(s.customer_name,'') LIKE '%' || @p2 || '%' OR IFNULL(s.customer_phone,'') LIKE '%' || @p2 || '%' OR CAST(s.id AS TEXT) = @p2 " &
                             "OR EXISTS (SELECT 1 FROM sale_items i WHERE i.sale_id = s.id AND i.product_name LIKE '%' || @p2 || '%')) " &

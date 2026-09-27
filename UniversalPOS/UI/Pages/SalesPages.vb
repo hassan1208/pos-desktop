@@ -124,6 +124,9 @@ Namespace UI.Pages
             AddHandler _range.RangeChanged, Sub() RefreshData()
             AddHandler _search.TextChanged, Sub() RefreshData()
             AddHandler _grid.SelectionChanged, Sub() ShowItems()
+            Ui.OnFormat(_grid, Sub(r, col, st)
+                                   If col = "due" AndAlso GetDec(r, "due") > 0 Then st.ForeColor = Theme.Danger
+                               End Sub)
             AddHandler _grid.CellDoubleClick, Sub(s, e)
                                                   If e.RowIndex >= 0 Then WithSelected(Sub(id) DocPrinter.Preview(Documents.SaleInvoice(id), FindForm()))
                                               End Sub
@@ -132,9 +135,9 @@ Namespace UI.Pages
         Public Overrides Sub RefreshData()
             Dim dt = ReportService.SalesList(_range.FromDate, _range.ToDate, _search.Text)
             If Session.IsAdmin Then
-                Ui.ShowTable(_grid, dt, "id=Invoice #", "sale_date=Date", "customer=Customer", "customer_phone=Phone", "items=Items", "discount=Discount", "total_amount=Total", "total_profit=Profit", "user=By")
+                Ui.ShowTable(_grid, dt, "id=Invoice #", "sale_date=Date", "customer=Customer", "customer_phone=Phone", "items=Items", "discount=Discount", "total_amount=Total", "due=Udhaar", "total_profit=Profit", "user=By")
             Else
-                Ui.ShowTable(_grid, dt, "id=Invoice #", "sale_date=Date", "customer=Customer", "customer_phone=Phone", "items=Items", "discount=Discount", "total_amount=Total", "user=By")
+                Ui.ShowTable(_grid, dt, "id=Invoice #", "sale_date=Date", "customer=Customer", "customer_phone=Phone", "items=Items", "discount=Discount", "total_amount=Total", "due=Udhaar", "user=By")
             End If
             If _grid.Columns.Count > 0 Then _grid.Columns("customer").FillWeight = 160
             Dim total = dt.AsEnumerable().Sum(Function(r) GetDec(r, "total_amount"))

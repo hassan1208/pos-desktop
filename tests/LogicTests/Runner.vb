@@ -118,6 +118,29 @@ Namespace Tests
             SalesService.DeleteSale(saleId)
             Check(Stock(p1) = 15 AndAlso SalesService.GetSale(saleId) Is Nothing, "delete sale restores stock")
 
+            ' customer credit (udhaar)
+            Throws(Sub() SalesService.SaveSale(0, Date.Today, "", "", 0, New List(Of SaleLine) From {New SaleLine With {.ProductId = charger, .Quantity = 1, .SalePrice = 25}}, 5), "credit sale needs a customer")
+            Dim cs1 = SalesService.SaveSale(0, Date.Today.AddDays(-2), "Kamran", "0311", 0, New List(Of SaleLine) From {New SaleLine With {.ProductId = charger, .Quantity = 4, .SalePrice = 25}}, 30)
+            Dim cs2 = SalesService.SaveSale(0, Date.Today, "kamran ", "0311", 0, New List(Of SaleLine) From {New SaleLine With {.ProductId = charger, .Quantity = 2, .SalePrice = 25}}, 0)
+            Dim ck = CustomerService.CustomerKey("Kamran", "0311")
+            Dim cust = CustomerService.Customers("kamran").Rows(0)
+            Check(GetDec(cust, "balance") = 120D AndAlso GetLng(cust, "sales") = 2, "customer balance across sales")
+            Check(CustomerService.TotalOutstanding() = 120D, "total outstanding")
+            Check(CustomerService.ReceivePayment(ck, 80, Date.Today, "cash") = 80D, "payment applied")
+            Check(GetDec(SalesService.GetSale(cs1), "paid_amount") = 100D AndAlso GetDec(SalesService.GetSale(cs2), "paid_amount") = 10D, "payment goes to oldest sale first")
+            Dim cst = CustomerService.Statement(ck)
+            Check(GetDec(cst.Rows(cst.Rows.Count - 1), "balance") = 40D, "customer statement balance")
+            ' editing keeps later payments counted
+            SalesService.SaveSale(cs2, Date.Today, "Kamran", "0311", 0, New List(Of SaleLine) From {New SaleLine With {.ProductId = charger, .Quantity = 2, .SalePrice = 25}}, 0)
+            Check(GetDec(SalesService.GetSale(cs2), "paid_amount") = 10D, "edit keeps received payments")
+            Check(CustomerService.ReceivePayment(ck, 1000, Date.Today, "") = 40D, "overpayment capped")
+            Throws(Sub() CustomerService.ReceivePayment(ck, 5, Date.Today, ""), "nothing outstanding")
+            Dim pay1 = CLng(CustomerService.CustomerPayments(ck).Rows(0)("id"))
+            CustomerService.DeletePayment(pay1)
+            Check(CustomerService.TotalOutstanding() = 40D, "deleting a payment restores balance")
+            SalesService.DeleteSale(cs1) : SalesService.DeleteSale(cs2)
+            Check(CustomerService.TotalOutstanding() = 0D, "deleting sales clears credit")
+
             ' quotations
             Dim qId = QuotationService.SaveQuotation(0, Date.Today, "Bilal", "", "sent", "", New List(Of QuoteLine) From {
                 New QuoteLine With {.ProductId = charger, .CategoryId = catId, .ProductName = "Charger", .Quantity = 4, .SalePrice = 30}})

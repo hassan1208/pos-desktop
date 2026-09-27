@@ -64,6 +64,9 @@ Namespace UI.Pages
         Private ReadOnly _date As DateTimePicker
         Private ReadOnly _discount As NumericUpDown
         Private ReadOnly _cash As NumericUpDown
+        Private ReadOnly _credit As New CheckBox With {.Text = "Credit sale (udhaar) - customer pays later", .AutoSize = True, .ForeColor = Theme.Warning}
+        Private _cashLbl As Label
+        Private _changeCaption As Label
         Private ReadOnly _subtotalLbl As Label
         Private ReadOnly _totalLbl As Label
         Private ReadOnly _changeLbl As Label
@@ -145,8 +148,11 @@ Namespace UI.Pages
             AddTotalRow(totals, "Subtotal", _subtotalLbl)
             AddTotalRow(totals, "Discount", _discount)
             AddTotalRow(totals, "TOTAL", _totalLbl)
-            AddTotalRow(totals, "Cash received", _cash)
-            AddTotalRow(totals, "Change", _changeLbl)
+            totals.RowCount += 1
+            totals.Controls.Add(_credit, 0, totals.RowCount - 1)
+            totals.SetColumnSpan(_credit, 2)
+            _cashLbl = AddTotalRow(totals, "Cash received", _cash)
+            _changeCaption = AddTotalRow(totals, "Change", _changeLbl)
             Dim btns = Ui.Flow(False)
             btns.Margin = New Padding(0, 8, 0, 0)
             _printBtn = Ui.Btn("Save && Print  (F10)", BtnKind.Success, Sub() Save(True))
@@ -186,6 +192,7 @@ Namespace UI.Pages
             AddHandler _cart.ListChanged, Sub() UpdateTotals()
             AddHandler _discount.ValueChanged, Sub() UpdateTotals()
             AddHandler _cash.ValueChanged, Sub() UpdateTotals()
+            AddHandler _credit.CheckedChanged, Sub() UpdateTotals()
             AddHandler _cartGrid.CellContentClick, Sub(s, e)
                                                        If e.RowIndex >= 0 AndAlso e.ColumnIndex = 4 Then _cart.RemoveAt(e.RowIndex)
                                                    End Sub
@@ -205,14 +212,15 @@ Namespace UI.Pages
                                    End Sub)
         End Sub
 
-        Private Shared Sub AddTotalRow(t As TableLayoutPanel, label As String, ctl As Control)
+        Private Shared Function AddTotalRow(t As TableLayoutPanel, label As String, ctl As Control) As Label
             t.RowCount += 1
             Dim l = Ui.Lbl(label, If(label = "TOTAL", 12, 9.5F), If(label = "TOTAL", FontStyle.Bold, FontStyle.Regular), Theme.Muted)
             l.Anchor = AnchorStyles.Left
             ctl.Anchor = AnchorStyles.Right
             t.Controls.Add(l, 0, t.RowCount - 1)
             t.Controls.Add(ctl, 1, t.RowCount - 1)
-        End Sub
+            Return l
+        End Function
 
         ''' <summary>Reloads the product list and customer suggestions (call when the screen is shown).</summary>
         Public Sub ReloadLookups()
@@ -294,8 +302,17 @@ Namespace UI.Pages
             Dim total = subtotal - _discount.Value
             _subtotalLbl.Text = Fmt.Money(subtotal)
             _totalLbl.Text = Fmt.Money(total)
-            _changeLbl.Text = If(_cash.Value > 0, Fmt.Money(_cash.Value - total), "-")
-            _changeLbl.ForeColor = If(_cash.Value > 0 AndAlso _cash.Value < total, Theme.Danger, Theme.Success)
+            If _credit.Checked Then
+                _cashLbl.Text = "Paid now"
+                _changeCaption.Text = "Balance (udhaar)"
+                _changeLbl.Text = Fmt.Money(Math.Max(0D, total - _cash.Value))
+                _changeLbl.ForeColor = Theme.Warning
+            Else
+                _cashLbl.Text = "Cash received"
+                _changeCaption.Text = "Change"
+                _changeLbl.Text = If(_cash.Value > 0, Fmt.Money(_cash.Value - total), "-")
+                _changeLbl.ForeColor = If(_cash.Value > 0 AndAlso _cash.Value < total, Theme.Danger, Theme.Success)
+            End If
         End Sub
 
         Private Sub FillPhoneFromHistory()
@@ -322,6 +339,9 @@ Namespace UI.Pages
             Next
             _discount.Maximum = Math.Max(_discount.Maximum, GetDec(sale, "discount"))
             _discount.Value = GetDec(sale, "discount")
+            Dim paidSoFar = GetDec(sale, "paid_amount")
+            _credit.Checked = paidSoFar < GetDec(sale, "total_amount")
+            _cash.Value = If(_credit.Checked, Math.Min(_cash.Maximum, paidSoFar), 0D)
             _printBtn.Text = "Update && Print  (F10)"
             _saveBtn.Text = "Update  (F9)"
             UpdateTotals()
@@ -336,6 +356,7 @@ Namespace UI.Pages
             _date.Value = Date.Today
             _discount.Value = 0
             _cash.Value = 0
+            _credit.Checked = False
             _search.Text = ""
             UpdateTotals()
             _search.Focus()
@@ -353,7 +374,13 @@ Namespace UI.Pages
             End If
             Dim id As Long
             Dim lines = _cart.Select(Function(c) New SaleLine With {.ProductId = c.ProductId, .Quantity = c.Qty, .SalePrice = c.Price}).ToList()
-            If Not Ui.Attempt(Sub() id = SalesService.SaveSale(_saleId, _date.Value.Date, _customer.Text, _phone.Text, _discount.Value, lines)) Then Return
+            Dim paid = If(_credit.Checked, _cash.Value, -1D)
+            If _credit.Checked AndAlso _customer.Text.Trim() = "" AndAlso _phone.Text.Trim() = "" Then
+                Ui.Warn("For a credit (udhaar) sale, please enter the customer's name or phone.")
+                _customer.Focus()
+                Return
+            End If
+            If Not Ui.Attempt(Sub() id = SalesService.SaveSale(_saleId, _date.Value.Date, _customer.Text, _phone.Text, _discount.Value, lines, paid)) Then Return
             If print Then PrintInvoice(id, FindForm())
             RaiseEvent Saved(id)
         End Sub

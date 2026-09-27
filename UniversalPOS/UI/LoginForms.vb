@@ -19,6 +19,7 @@ Namespace UI
             StartPosition = FormStartPosition.CenterScreen
             BackColor = Theme.Card
             ClientSize = New Size(760, 440)
+            If Theme.AppIcon IsNot Nothing Then Icon = Theme.AppIcon
 
             Dim side As New Panel With {.Dock = DockStyle.Left, .Width = 330, .BackColor = Theme.Sidebar}
             AddHandler side.Paint, Sub(s, e)

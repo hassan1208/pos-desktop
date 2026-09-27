@@ -78,7 +78,7 @@ Namespace UI.Pages
                 AddCard(0, 1, "Products", st.ProductCount.ToString("N0"), "Stock value: " & Fmt.Money(st.StockValue), Theme.Text)
                 AddCard(1, 1, "Low Stock", st.LowStockCount.ToString("N0"), "at or below " & AppSettings.LowStockThreshold & " units", If(st.LowStockCount > 0, Theme.Danger, Theme.Success))
                 AddCard(2, 1, "Payable to Vendors", Fmt.Money(st.VendorPayable), "Unpaid purchase bills", Theme.Warning)
-                AddCard(3, 1, "Shopkeepers", Fmt.Money(st.ShopkeeperReceivable), "Receivable  |  Payable " & Fmt.Money(st.ShopkeeperPayable), Theme.InfoColor)
+                AddCard(3, 1, "To Receive", Fmt.Money(st.CustomerCredit + st.ShopkeeperReceivable), "Udhaar " & Fmt.Money(st.CustomerCredit) & "  |  Shops " & Fmt.Money(st.ShopkeeperReceivable), Theme.InfoColor)
             Else
                 AddCard(1, 0, "Products", st.ProductCount.ToString("N0"), "in catalog", Theme.Text)
                 AddCard(2, 0, "Low Stock", st.LowStockCount.ToString("N0"), "at or below " & AppSettings.LowStockThreshold & " units", If(st.LowStockCount > 0, Theme.Danger, Theme.Success))

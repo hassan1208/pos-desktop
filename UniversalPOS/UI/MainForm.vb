@@ -28,6 +28,7 @@ Namespace UI
             StartPosition = FormStartPosition.CenterScreen
             BackColor = Theme.Background
             KeyPreview = True
+            If Theme.AppIcon IsNot Nothing Then Icon = Theme.AppIcon
 
             ' ---- sidebar ----
             Dim side As New Panel With {.Dock = DockStyle.Left, .Width = CInt(215 * Theme.Fnt(10).Size / 10), .BackColor = Theme.Sidebar}
@@ -86,6 +87,7 @@ Namespace UI
                 AddNav("vendors", "Vendors && Purchases", Function() New VendorsPage())
             End If
             AddSection("ACCOUNTS")
+            AddNav("customers", "Customers (Udhaar)", Function() New CustomersPage())
             AddNav("shopkeepers", "Shopkeepers Ledger", Function() New ShopkeepersPage())
             If Session.IsAdmin Then AddNav("expenses", "Expenses", Function() New ExpensesPage())
             AddNav("maintenance", "Maintenance / Repairs", Function() New MaintenancePage())

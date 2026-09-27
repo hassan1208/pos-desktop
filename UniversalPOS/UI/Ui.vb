@@ -44,6 +44,21 @@ Namespace UI
             Return New Font("Segoe UI", size * _scale, style)
         End Function
 
+        Private _icon As Icon
+
+        ''' <summary>The exe's own icon, for window title bars.</summary>
+        Public ReadOnly Property AppIcon As Icon
+            Get
+                If _icon Is Nothing Then
+                    Try
+                        _icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath)
+                    Catch
+                    End Try
+                End If
+                Return _icon
+            End Get
+        End Property
+
         Public ReadOnly Property BaseFont As Font
             Get
                 Return Fnt(9.75F)

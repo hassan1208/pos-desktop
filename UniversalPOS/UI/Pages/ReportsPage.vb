@@ -95,6 +95,7 @@ Namespace UI.Pages
             pl.Rows.Add("NET PROFIT", Fmt.Money(r.NetProfit))
             pl.Rows.Add("", "")
             pl.Rows.Add("Stock purchased (" & r.PurchaseCount & " bills)", Fmt.Money(r.PurchaseTotal))
+            pl.Rows.Add("Customer udhaar outstanding (all time)", Fmt.Money(CustomerService.TotalOutstanding()))
             Ui.ShowTable(_pl, pl, "item=Item", "amount=Amount")
             If _pl.Columns.Contains("amount") Then _pl.Columns("amount").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
 

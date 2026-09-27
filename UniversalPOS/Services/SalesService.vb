@@ -23,7 +23,7 @@ Namespace Services
         ''' when editing, the old items' stock is restored first so the sale can be re-validated.
         ''' </summary>
         Public Function SaveSale(saleId As Long, saleDate As Date, customerName As String, customerPhone As String,
-                                 discount As Decimal, lines As IEnumerable(Of SaleLine)) As Long
+                                 discount As Decimal, lines As IEnumerable(Of SaleLine), Optional paidAmount As Decimal = -1D) As Long
             Return Db.Tx(Function(s)
                              If saleId > 0 Then
                                  If s.QueryRow("SELECT id FROM sales WHERE id = @p0", saleId) Is Nothing Then
@@ -71,14 +71,23 @@ Namespace Services
                              discount = Math.Min(Math.Max(0D, Fmt.Round2(discount)), subtotal)
                              Dim total = subtotal - discount
                              profit -= discount
+                             ' paidAmount < 0 means "fully paid"; anything less than the total is customer credit (udhaar).
+                             Dim paid = If(paidAmount < 0, total, Math.Min(Fmt.Round2(paidAmount), total))
+                             If saleId > 0 Then
+                                 ' Payments already received later stay counted.
+                                 paid = Math.Max(paid, Math.Min(total, s.ScalarDec("SELECT COALESCE(SUM(amount),0) FROM sale_payments WHERE sale_id = @p0", saleId)))
+                             End If
+                             If paid < total AndAlso String.IsNullOrWhiteSpace(customerName) AndAlso String.IsNullOrWhiteSpace(customerPhone) Then
+                                 Throw New BusinessException("For a credit (udhaar) sale, please enter the customer's name or phone.")
+                             End If
 
                              Dim id = saleId
                              If id > 0 Then
-                                 s.Exec("UPDATE sales SET sale_date=@p0, subtotal=@p1, discount=@p2, total_amount=@p3, total_profit=@p4, customer_name=@p5, customer_phone=@p6 WHERE id=@p7",
-                                        saleDate, subtotal, discount, total, profit, NullIfEmpty(customerName), NullIfEmpty(customerPhone), id)
+                                 s.Exec("UPDATE sales SET sale_date=@p0, subtotal=@p1, discount=@p2, total_amount=@p3, total_profit=@p4, customer_name=@p5, customer_phone=@p6, paid_amount=@p8 WHERE id=@p7",
+                                        saleDate, subtotal, discount, total, profit, NullIfEmpty(customerName), NullIfEmpty(customerPhone), id, paid)
                              Else
-                                 id = s.Insert("INSERT INTO sales (sale_date, subtotal, discount, total_amount, total_profit, customer_name, customer_phone, user_id) VALUES (@p0,@p1,@p2,@p3,@p4,@p5,@p6,@p7)",
-                                               saleDate, subtotal, discount, total, profit, NullIfEmpty(customerName), NullIfEmpty(customerPhone), NullIfZero(Session.UserId))
+                                 id = s.Insert("INSERT INTO sales (sale_date, subtotal, discount, total_amount, total_profit, customer_name, customer_phone, user_id, paid_amount) VALUES (@p0,@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8)",
+                                               saleDate, subtotal, discount, total, profit, NullIfEmpty(customerName), NullIfEmpty(customerPhone), NullIfZero(Session.UserId), paid)
                              End If
 
                              For Each ln In merged

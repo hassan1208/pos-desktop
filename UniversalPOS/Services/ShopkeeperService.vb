@@ -117,7 +117,7 @@ Namespace Services
                                      Dim pp = GetDec(p, "purchase_price")
                                      Dim profit = Fmt.Round2((price - pp) * qty)
                                      s.Exec("UPDATE products SET stock_quantity = stock_quantity - @p0 WHERE id = @p1", qty, e.ProductId)
-                                     Dim sid = s.Insert("INSERT INTO sales (sale_date, subtotal, discount, total_amount, total_profit, customer_name, customer_phone, user_id) VALUES (@p0,@p1,0,@p1,@p2,@p3,@p4,@p5)",
+                                     Dim sid = s.Insert("INSERT INTO sales (sale_date, subtotal, discount, total_amount, total_profit, customer_name, customer_phone, user_id, paid_amount) VALUES (@p0,@p1,0,@p1,@p2,@p3,@p4,@p5,@p1)",
                                                         e.TransactionDate, amount, profit, GetStr(contact, "name"), NullIfEmpty(GetStr(contact, "phone")), NullIfZero(Session.UserId))
                                      s.Exec("INSERT INTO sale_items (sale_id, product_id, category_id, product_name, quantity, purchase_price, sale_price, profit, line_total) VALUES (@p0,@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8)",
                                             sid, e.ProductId, GetLng(p, "category_id"), GetStr(p, "product_name"), qty, pp, price, profit, amount)

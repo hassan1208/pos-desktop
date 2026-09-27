@@ -3,7 +3,7 @@ Namespace Data
     ''' <summary>Database schema (SQLite) and versioned migrations.</summary>
     Public Module Schema
 
-        Public Const CurrentVersion As Integer = 1
+        Public Const CurrentVersion As Integer = 2
 
         Private Const BaseSql As String = "
 CREATE TABLE IF NOT EXISTS settings (
@@ -232,7 +232,17 @@ CREATE TABLE IF NOT EXISTS quotation_items (
             Using s = Db.Open()
                 s.Exec(BaseSql)
                 Dim version = s.ScalarLong("PRAGMA user_version")
-                ' Future migrations go here:  If version < 2 Then ... : s.Exec("PRAGMA user_version = 2")
+                ' v2: customer credit (udhaar). Existing sales count as fully paid.
+                If s.ScalarLong("SELECT COUNT(*) FROM pragma_table_info('sales') WHERE name = 'paid_amount'") = 0 Then
+                    s.Exec("ALTER TABLE sales ADD COLUMN paid_amount REAL")
+                End If
+                s.Exec("UPDATE sales SET paid_amount = total_amount WHERE paid_amount IS NULL")
+                s.Exec("CREATE TABLE IF NOT EXISTS sale_payments (" &
+                       "id INTEGER PRIMARY KEY AUTOINCREMENT, " &
+                       "sale_id INTEGER NOT NULL REFERENCES sales(id) ON DELETE CASCADE, " &
+                       "amount REAL NOT NULL, payment_date TEXT NOT NULL, notes TEXT, " &
+                       "created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')))")
+                s.Exec("CREATE INDEX IF NOT EXISTS idx_sale_payments_sale ON sale_payments(sale_id)")
                 If version < CurrentVersion Then
                     s.Exec("PRAGMA user_version = " & CurrentVersion)
                 End If
